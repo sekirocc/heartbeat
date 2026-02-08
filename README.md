@@ -1,145 +1,147 @@
-# 心跳服务 (Heartbeat Service)
+# Heartbeat Service
 
-macOS 自动启动的心跳监控服务，定期向指定服务器发送本机内网 IP 地址。
+Automatic heartbeat monitoring service for macOS that periodically sends local IP address to a specified server.
 
-**实现**: 纯 Perl 脚本，仅使用核心模块（IO::Socket::INET），无需安装任何 CPAN 包。
+**Implementation**: Pure Perl script using only core modules (IO::Socket::INET), no CPAN packages required.
 
-## 组件
+## Components
 
-本项目包含两个部分：
+This project contains two parts:
 
-1. **heartbeat.pl** - 心跳客户端（本文档）
-   - 安装在客户端机器上
-   - 定期发送本机 IP 到服务器
+1. **heartbeat.pl** - Heartbeat Client (this document)
+   - Installed on client machines
+   - Periodically sends local IP to server
 
-2. **heartbeat_server.pl** - 心跳服务器
-   - 安装在服务器上
-   - 接收并记录心跳消息
-   - 详见 [SERVER_README.md](SERVER_README.md)
+2. **heartbeat_server.pl** - Heartbeat Server
+   - Installed on server
+   - Receives and logs heartbeat messages
+   - See [SERVER_README.md](SERVER_README.md)
 
-## 功能特性
+## Features
 
-- **自动启动**: 系统启动时自动运行
-- **智能频率调整**: 根据网络状态自动调整发送频率
-  - 正常: 1分钟一次
-  - 10分钟未成功: 降级为1小时一次
-  - 5小时未成功: 降级为1天一次
-  - 成功后立即恢复为1分钟一次
-- **自动重启**: 进程异常退出时自动重启
-- **日志记录**: 完整的发送日志和状态记录
+- **Auto-start**: Runs automatically on system startup
+- **Intelligent frequency adjustment**: Adapts sending frequency based on network status
+  - Normal: Every 1 minute
+  - 10 minutes without success: Degrades to every 1 hour
+  - 5 hours without success: Degrades to every 1 day
+  - Immediately restores to 1 minute upon success
+- **Auto-restart**: Automatically restarts if process exits abnormally
+- **Logging**: Complete sending logs and state tracking
 
-## 快速安装
+## Quick Installation
 
-### 前提条件
+### Prerequisites
 
-确保 `heartbeat` 目录包含以下文件：
-- `heartbeat.pl` - Perl 心跳脚本（包含占位符）
-- `install.sh` - 安装脚本
-- `uninstall.sh` - 卸载脚本
+Ensure the `heartbeat` directory contains the following files:
+- `heartbeat.pl` - Perl heartbeat script (with placeholder)
+- `install.sh` - Installation script
+- `uninstall.sh` - Uninstallation script
 
-**系统要求**:
-- macOS 10.10 或更高版本
-- Perl 5.10+ (macOS 自带，无需额外安装)
+**System Requirements**:
+- macOS 10.10 or higher
+- Perl 5.10+ (comes with macOS, no additional installation needed)
 
-### 方法1: 使用默认配置安装
+### Method 1: Install with default configuration
 
 ```bash
 cd heartbeat
 ./install.sh
 ```
 
-默认目标服务器: `192.168.1.52:7777`
+Default target server: `192.168.1.52:7777`
 
-### 方法2: 指定目标服务器安装
+### Method 2: Install with custom target server
 
 ```bash
 cd heartbeat
 ./install.sh 192.168.1.100:8080
 ```
 
-## 安装脚本工作原理
+## How Installation Script Works
 
-安装脚本执行以下操作：
+The installation script performs the following operations:
 
-1. 检查 `heartbeat.pl` 是否存在于同目录
-2. 停止已运行的旧服务（如果存在）
-3. 创建安装目录 `/opt/heartbeat`（需要 sudo 权限，会提示输入密码）
-4. 复制 `heartbeat.pl` 到安装目录
-5. 使用 `sed` 替换脚本中的 `TARGET_SERVER_PLACEHOLDER` 为实际目标服务器
-6. 创建 LaunchAgent plist 配置文件
-7. 加载并启动服务
-8. 验证安装结果
+1. Checks if `heartbeat.pl` exists in the same directory
+2. Stops running old service (if exists)
+3. Creates install directory `/opt/heartbeat` (requires sudo, prompts for password)
+4. Copies `heartbeat.pl` to install directory
+5. Uses `sed` to replace `TARGET_SERVER_PLACEHOLDER` with actual target server
+6. Creates LaunchAgent plist configuration file
+7. Loads and starts service
+8. Verifies installation
 
-**注意**: 因为安装到 `/opt` 目录，安装过程中会要求输入管理员密码。
+**Note**: Installation to `/opt` directory requires administrator password.
 
-## 使用说明
+## Usage
 
-### 查看服务状态
+### Check Service Status
 
 ```bash
-# 查看服务是否运行
+# Check if service is running
 launchctl list | grep heartbeat
 
-# 查看实时日志
+# View real-time logs
 tail -f /tmp/heartbeat.log
 
-# 查看最近日志
+# View recent logs
 tail -20 /tmp/heartbeat.log
 
-# 查看上次成功时间
+# Check last success time
 cat /tmp/heartbeat.state
 ```
 
-### 管理服务
+### Manage Service
 
 ```bash
-# 停止服务
+# Stop service
 launchctl unload ~/Library/LaunchAgents/com.user.heartbeat.plist
 
-# 启动服务
+# Start service
 launchctl load ~/Library/LaunchAgents/com.user.heartbeat.plist
 
-# 重启服务
+# Restart service
 launchctl unload ~/Library/LaunchAgents/com.user.heartbeat.plist && \
 launchctl load ~/Library/LaunchAgents/com.user.heartbeat.plist
 ```
 
-### 卸载服务
+### Uninstall Service
 
 ```bash
 cd heartbeat
 ./uninstall.sh
 ```
 
-卸载脚本会提示是否删除安装目录和日志文件。
+The uninstall script will prompt whether to delete install directory and log files.
 
-## 文件说明
+## File Structure
 
 ```
 heartbeat/
-├── heartbeat.pl        # Perl 心跳服务脚本（含占位符）
-├── install.sh          # 安装脚本
-├── uninstall.sh        # 卸载脚本
-└── README.md          # 说明文档
+├── heartbeat.pl        # Perl heartbeat service script (with placeholder)
+├── heartbeat_server.pl # Perl heartbeat server
+├── install.sh          # Installation script
+├── uninstall.sh        # Uninstallation script
+├── README.md          # Documentation (this file)
+└── SERVER_README.md   # Server documentation
 ```
 
-## Perl 实现优势
+## Perl Implementation Advantages
 
-- **纯 Perl**: 仅使用 Perl 核心模块，无需安装 CPAN 包
-- **跨平台**: Perl 在所有 Unix-like 系统中都是标准配置
-- **高效**: 内存占用小，性能优秀
-- **可靠**: 使用 IO::Socket::INET 直接构建 HTTP 请求，无外部依赖
+- **Pure Perl**: Uses only Perl core modules, no CPAN packages required
+- **Cross-platform**: Perl is standard on all Unix-like systems
+- **Efficient**: Low memory footprint, excellent performance
+- **Reliable**: Uses IO::Socket::INET to build HTTP requests directly, no external dependencies
 
-## 日志文件
+## Log Files
 
-- `/tmp/heartbeat.log` - 主日志文件
-- `/tmp/heartbeat.state` - 状态文件（记录上次成功时间）
-- `/tmp/heartbeat.stdout.log` - 标准输出日志
-- `/tmp/heartbeat.stderr.log` - 标准错误日志
+- `/tmp/heartbeat.log` - Main log file
+- `/tmp/heartbeat.state` - State file (records last success time)
+- `/tmp/heartbeat.stdout.log` - Standard output log
+- `/tmp/heartbeat.stderr.log` - Standard error log
 
-## 消息格式
+## Message Format
 
-服务会向目标服务器发送 HTTP POST 请求：
+The service sends HTTP POST requests to the target server:
 
 ```json
 {
@@ -147,58 +149,58 @@ heartbeat/
 }
 ```
 
-请求头：`Content-Type: application/json`
+Request header: `Content-Type: application/json`
 
-## 频率调整机制
+## Frequency Adjustment Mechanism
 
-服务会根据发送成功情况自动调整发送频率：
+The service automatically adjusts sending frequency based on success status:
 
-| 状态 | 条件 | 发送频率 |
-|------|------|----------|
-| 正常 | 最近成功 | 每 1 分钟 |
-| 降级1 | 超过 10 分钟未成功 | 每 1 小时 |
-| 降级2 | 超过 5 小时未成功 | 每 1 天 |
+| Status | Condition | Sending Frequency |
+|--------|-----------|-------------------|
+| Normal | Recently successful | Every 1 minute |
+| Degraded 1 | Over 10 minutes without success | Every 1 hour |
+| Degraded 2 | Over 5 hours without success | Every 1 day |
 
-一旦发送成功，立即恢复为 1 分钟间隔。
+Upon successful send, immediately restores to 1 minute interval.
 
-## 故障排查
+## Troubleshooting
 
-### 服务未运行
+### Service Not Running
 
 ```bash
-# 检查服务状态
+# Check service status
 launchctl list | grep heartbeat
 
-# 查看错误日志
+# View error logs
 cat /tmp/heartbeat.stderr.log
 
-# 手动启动测试
+# Manual start test
 sudo /opt/heartbeat/heartbeat.pl
 ```
 
-### 无法获取 IP
+### Cannot Get IP
 
-脚本会尝试以下方式获取本地 IP：
-1. en0 接口 (WiFi)
-2. en1 接口 (以太网)
-3. 所有活跃接口的第一个 IP
+The script attempts to get local IP in the following order:
+1. en0 interface (WiFi)
+2. en1 interface (Ethernet)
+3. First IP of all active interfaces
 
-如果仍无法获取，请检查网络连接。
+If still unable to get IP, check network connection.
 
-### 发送失败
+### Send Failed
 
-检查：
-1. 目标服务器是否可访问
-2. 端口是否正确
-3. 防火墙设置
-4. 网络连接状态
+Check:
+1. Is target server accessible
+2. Is port correct
+3. Firewall settings
+4. Network connection status
 
-## 系统要求
+## System Requirements
 
-- macOS 10.10 或更高版本
-- Perl 5.10+ (macOS 系统自带)
-- 核心 Perl 模块: IO::Socket::INET, POSIX (系统自带，无需安装)
+- macOS 10.10 or higher
+- Perl 5.10+ (comes with macOS)
+- Core Perl modules: IO::Socket::INET, POSIX (comes with system, no installation needed)
 
-## 许可
+## License
 
-自由使用
+Free to use

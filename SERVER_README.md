@@ -1,40 +1,40 @@
-# 心跳服务器 (Heartbeat Server)
+# Heartbeat Server
 
-纯 Perl 实现的 HTTP 服务器，用于接收心跳消息。
+Pure Perl HTTP server implementation for receiving heartbeat messages.
 
-## 特性
+## Features
 
-- **纯 Perl**: 仅使用核心模块（IO::Socket::INET、POSIX）
-- **零依赖**: 无需安装任何 CPAN 包
-- **轻量级**: 简单高效的 HTTP 服务器实现
-- **日志记录**: 自动记录所有心跳消息
+- **Pure Perl**: Uses only core modules (IO::Socket::INET, POSIX)
+- **Zero Dependencies**: No CPAN packages required
+- **Lightweight**: Simple and efficient HTTP server implementation
+- **Logging**: Automatically logs all heartbeat messages
 
-## 快速启动
+## Quick Start
 
-### 使用默认端口 (7777)
+### Using Default Port (7777)
 
 ```bash
 ./heartbeat_server.pl
 ```
 
-### 指定端口
+### Specify Port
 
 ```bash
 ./heartbeat_server.pl 8080
 ```
 
-### 后台运行
+### Run in Background
 
 ```bash
 nohup ./heartbeat_server.pl 7777 > /tmp/server.out 2>&1 &
 ```
 
-## 功能说明
+## Functionality
 
-### 支持的 HTTP 方法
+### Supported HTTP Methods
 
-#### POST - 接收心跳消息
-接收 JSON 格式的心跳数据：
+#### POST - Receive Heartbeat Messages
+Receives JSON format heartbeat data:
 
 ```bash
 curl -X POST http://localhost:7777 \
@@ -42,116 +42,116 @@ curl -X POST http://localhost:7777 \
   -d '{"ip": "192.168.1.100"}'
 ```
 
-服务器会：
-- 解析 JSON 数据
-- 记录客户端 IP 和报告的 IP
-- 返回 200 OK 响应
+The server will:
+- Parse JSON data
+- Log client IP and reported IP
+- Return 200 OK response
 
-#### GET - 健康检查
+#### GET - Health Check
 ```bash
 curl http://localhost:7777
 ```
 
-返回 HTML 页面显示服务器状态。
+Returns HTML page showing server status.
 
-#### HEAD - 服务器存活检查
+#### HEAD - Server Alive Check
 ```bash
 curl -I http://localhost:7777
 ```
 
-返回响应头，不包含响应体。
+Returns response headers without response body.
 
-## 日志
+## Logging
 
-### 日志位置
+### Log Location
 ```
 /tmp/heartbeat_server.log
 ```
 
-### 查看日志
+### View Logs
 
 ```bash
-# 查看最近的日志
+# View recent logs
 tail -20 /tmp/heartbeat_server.log
 
-# 实时查看日志
+# View real-time logs
 tail -f /tmp/heartbeat_server.log
 ```
 
-### 日志格式
+### Log Format
 
 ```
-2026-02-08 11:30:15 - 服务器启动，监听端口 7777
-2026-02-08 11:30:20 - 收到心跳 - 来自: 192.168.1.53, 报告IP: 192.168.1.53
-2026-02-08 11:31:20 - 收到心跳 - 来自: 192.168.1.53, 报告IP: 192.168.1.53
+2026-02-08 11:30:15 - Server started, listening on port 7777
+2026-02-08 11:30:20 - Received heartbeat - From: 192.168.1.53, Reported IP: 192.168.1.53
+2026-02-08 11:31:20 - Received heartbeat - From: 192.168.1.53, Reported IP: 192.168.1.53
 ```
 
-## 管理
+## Management
 
-### 查找服务器进程
+### Find Server Process
 
 ```bash
 ps aux | grep heartbeat_server.pl
 ```
 
-### 停止服务器
+### Stop Server
 
 ```bash
-# 找到进程 ID
+# Find process ID
 ps aux | grep heartbeat_server.pl
 
-# 停止进程
+# Stop process
 kill <PID>
 
-# 或者强制停止
+# Or force stop
 pkill -f heartbeat_server.pl
 ```
 
-### 重启服务器
+### Restart Server
 
 ```bash
-# 停止
+# Stop
 pkill -f heartbeat_server.pl
 
-# 启动
+# Start
 nohup ./heartbeat_server.pl 7777 > /tmp/server.out 2>&1 &
 ```
 
-## 测试
+## Testing
 
-### 测试 POST 请求
+### Test POST Request
 
 ```bash
-# 发送心跳消息
+# Send heartbeat message
 curl -X POST http://localhost:7777 \
   -H "Content-Type: application/json" \
   -d '{"ip": "192.168.1.100"}'
 
-# 查看日志确认收到
+# Check logs to confirm receipt
 tail -5 /tmp/heartbeat_server.log
 ```
 
-### 测试 GET 请求
+### Test GET Request
 
 ```bash
 curl http://localhost:7777
 ```
 
-### 使用心跳客户端测试
+### Test with Heartbeat Client
 
-如果已安装心跳客户端：
+If heartbeat client is installed:
 
 ```bash
-# 修改目标为本机
+# Point to localhost
 cd heartbeat
 ./install.sh localhost:7777
 ```
 
-## 生产部署
+## Production Deployment
 
-### 使用 systemd (Linux)
+### Using systemd (Linux)
 
-创建服务文件 `/etc/systemd/system/heartbeat-server.service`:
+Create service file `/etc/systemd/system/heartbeat-server.service`:
 
 ```ini
 [Unit]
@@ -169,16 +169,16 @@ RestartSec=10
 WantedBy=multi-user.target
 ```
 
-启动服务：
+Start service:
 ```bash
 sudo systemctl enable heartbeat-server
 sudo systemctl start heartbeat-server
 sudo systemctl status heartbeat-server
 ```
 
-### 使用 launchd (macOS)
+### Using launchd (macOS)
 
-创建 plist 文件 `~/Library/LaunchAgents/com.user.heartbeat.server.plist`:
+Create plist file `~/Library/LaunchAgents/com.user.heartbeat.server.plist`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -205,16 +205,16 @@ sudo systemctl status heartbeat-server
 </plist>
 ```
 
-加载服务：
+Load service:
 ```bash
 launchctl load ~/Library/LaunchAgents/com.user.heartbeat.server.plist
 ```
 
-## 防火墙配置
+## Firewall Configuration
 
 ### macOS
 ```bash
-# 允许端口 7777
+# Allow port 7777
 sudo /usr/libexec/ApplicationFirewall/socketfilterfw --add /usr/bin/perl
 ```
 
@@ -229,56 +229,56 @@ sudo firewall-cmd --permanent --add-port=7777/tcp
 sudo firewall-cmd --reload
 ```
 
-## 故障排查
+## Troubleshooting
 
-### 端口已被占用
+### Port Already in Use
 
 ```bash
-# 查看端口使用情况
+# Check port usage
 lsof -i :7777
 
-# 或使用 netstat
+# Or use netstat
 netstat -an | grep 7777
 ```
 
-### 权限问题
+### Permission Issues
 
-如果使用 1024 以下的端口（如 80），需要 root 权限：
+If using ports below 1024 (e.g., 80), root permission is required:
 
 ```bash
 sudo ./heartbeat_server.pl 80
 ```
 
-### 查看错误日志
+### View Error Logs
 
 ```bash
-# 如果后台运行
+# If running in background
 cat /tmp/server.out
 
-# 或查看服务器日志
+# Or view server logs
 tail -50 /tmp/heartbeat_server.log
 ```
 
-## 系统要求
+## System Requirements
 
-- Perl 5.10 或更高版本
-- 核心模块: IO::Socket::INET, POSIX（系统自带）
-- Unix-like 系统 (Linux, macOS, BSD, etc.)
+- Perl 5.10 or higher
+- Core modules: IO::Socket::INET, POSIX (comes with system)
+- Unix-like system (Linux, macOS, BSD, etc.)
 
-## 性能
+## Performance
 
-- **并发**: 单线程处理，适合轻量级心跳场景
-- **内存**: 约 5-10 MB
-- **CPU**: 极低占用
-- **建议**: 小于 100 个客户端的心跳监控
+- **Concurrency**: Single-threaded processing, suitable for lightweight heartbeat scenarios
+- **Memory**: Approximately 5-10 MB
+- **CPU**: Very low usage
+- **Recommendation**: Heartbeat monitoring for less than 100 clients
 
-## 安全建议
+## Security Recommendations
 
-1. **限制访问**: 使用防火墙限制只有特定 IP 可以访问
-2. **内网使用**: 建议仅在内网使用，不要暴露到公网
-3. **监控日志**: 定期检查日志文件大小，防止磁盘被填满
-4. **非特权端口**: 使用 1024 以上的端口，避免需要 root 权限
+1. **Restrict Access**: Use firewall to limit access to specific IPs only
+2. **Internal Use**: Recommended for internal network use only, do not expose to public internet
+3. **Monitor Logs**: Regularly check log file size to prevent disk space issues
+4. **Non-privileged Port**: Use ports above 1024 to avoid requiring root permission
 
-## 许可
+## License
 
-自由使用
+Free to use
