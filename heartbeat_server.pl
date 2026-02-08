@@ -74,9 +74,9 @@ sub handle_request {
         read($client_socket, $body, $content_length);
     }
 
-    # Get client IP
-    my ($client_ip, $client_port) = unpack_sockaddr_in($client_addr);
-    $client_ip = inet_ntoa($client_ip);
+    # Get client IP (note: unpack_sockaddr_in returns (port, ip) not (ip, port))
+    my ($client_port, $packed_ip) = unpack_sockaddr_in($client_addr);
+    my $client_ip = inet_ntoa($packed_ip);
 
     # Handle different request methods
     if ($request eq 'POST') {
