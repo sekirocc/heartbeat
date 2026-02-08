@@ -10,25 +10,30 @@ my $STATE_FILE = "/tmp/heartbeat.state";
 my $LOG_FILE = "/tmp/heartbeat.log";
 my $TARGET_SERVER = "TARGET_SERVER_PLACEHOLDER";  # Format: IP:PORT
 
-# Get local IP address
-sub get_local_ip {
-    # Try en0 (WiFi)
-    my $ip = `ifconfig en0 2>/dev/null | grep 'inet ' | grep -v 127.0.0.1 | awk '{print \$2}'`;
-    chomp($ip);
+# Get all local IP addresses with interface names
+sub get_all_ips {
+    my @interfaces;
 
-    # Try en1 (Ethernet)
-    if (!$ip) {
-        $ip = `ifconfig en1 2>/dev/null | grep 'inet ' | grep -v 127.0.0.1 | awk '{print \$2}'`;
+    # Get list of all network interfaces
+    my @all_interfaces = `ifconfig -l 2>/dev/null`;
+    chomp(@all_interfaces);
+    my @interface_names = split(/\s+/, $all_interfaces[0] || '');
+
+    # For each interface, get its IP address
+    foreach my $iface (@interface_names) {
+        my $ip = `ifconfig $iface 2>/dev/null | grep 'inet ' | grep -v 127.0.0.1 | awk '{print \$2}'`;
         chomp($ip);
+
+        # Only add interfaces that have an IP address
+        if ($ip) {
+            push @interfaces, {
+                name => $iface,
+                ip => $ip
+            };
+        }
     }
 
-    # Try all interfaces
-    if (!$ip) {
-        $ip = `ifconfig 2>/dev/null | grep 'inet ' | grep -v 127.0.0.1 | head -1 | awk '{print \$2}'`;
-        chomp($ip);
-    }
-
-    return $ip;
+    return @interfaces;
 }
 
 # Get last success timestamp
@@ -144,10 +149,10 @@ sub send_http_post {
 
 # Send heartbeat message
 sub send_heartbeat {
-    my $ip = get_local_ip();
+    my @interfaces = get_all_ips();
 
-    unless ($ip) {
-        write_log("Failed to get local IP address");
+    unless (@interfaces) {
+        write_log("Failed to get any local IP addresses");
         return 0;
     }
 
@@ -158,18 +163,27 @@ sub send_heartbeat {
         return 0;
     }
 
-    # Build JSON message body
-    my $json_data = qq({"ip": "$ip"});
+    # Build JSON message body with all interfaces
+    my @interface_json;
+    foreach my $iface (@interfaces) {
+        push @interface_json, qq({"name": "$iface->{name}", "ip": "$iface->{ip}"});
+    }
+    my $interfaces_str = join(', ', @interface_json);
+    my $json_data = qq({"interfaces": [$interfaces_str]});
+
+    # Build log message with all IPs
+    my @ip_list = map { "$_->{name}:$_->{ip}" } @interfaces;
+    my $ip_summary = join(', ', @ip_list);
 
     # Send HTTP POST request
     my ($success, $message) = send_http_post($host, $port, '/', $json_data);
 
     if ($success) {
         save_success_time();
-        write_log("Send success - IP: $ip (restored to 1 minute interval)");
+        write_log("Send success - IPs: $ip_summary (restored to 1 minute interval)");
         return 1;
     } else {
-        write_log("Send failed - IP: $ip, Error: $message");
+        write_log("Send failed - IPs: $ip_summary, Error: $message");
         return 0;
     }
 }

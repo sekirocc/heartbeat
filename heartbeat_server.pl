@@ -28,16 +28,35 @@ sub write_log {
     print get_timestamp() . " - $message\n";  # Also print to terminal
 }
 
-# Simple JSON parser (only handles our format: {"ip": "x.x.x.x"})
+# Simple JSON parser (handles both old and new format)
+# Old format: {"ip": "x.x.x.x"}
+# New format: {"interfaces": [{"name": "en0", "ip": "x.x.x.x"}, ...]}
 sub parse_json {
     my ($json_str) = @_;
     my %result;
 
-    # Remove whitespace and newlines
-    $json_str =~ s/\s+//g;
+    # Remove excessive whitespace but keep structure
+    $json_str =~ s/\n/ /g;
 
-    # Match "ip":"value" format
-    if ($json_str =~ /"ip"\s*:\s*"([^"]+)"/) {
+    # Try new format first: {"interfaces": [...]}
+    if ($json_str =~ /"interfaces"\s*:\s*\[(.*?)\]/s) {
+        my $interfaces_str = $1;
+        my @interfaces;
+
+        # Parse each interface object
+        while ($interfaces_str =~ /\{\s*"name"\s*:\s*"([^"]+)"\s*,\s*"ip"\s*:\s*"([^"]+)"\s*\}/g) {
+            push @interfaces, {
+                name => $1,
+                ip => $2
+            };
+        }
+
+        if (@interfaces) {
+            $result{interfaces} = \@interfaces;
+        }
+    }
+    # Fall back to old format: {"ip": "x.x.x.x"}
+    elsif ($json_str =~ /"ip"\s*:\s*"([^"]+)"/) {
         $result{ip} = $1;
     }
 
@@ -83,7 +102,16 @@ sub handle_request {
         # Parse JSON data
         my $data = parse_json($body);
 
-        if ($data->{ip}) {
+        if ($data->{interfaces}) {
+            # New format with multiple interfaces
+            my @ip_info;
+            foreach my $iface (@{$data->{interfaces}}) {
+                push @ip_info, "$iface->{name}:$iface->{ip}";
+            }
+            my $ip_summary = join(', ', @ip_info);
+            write_log("Received heartbeat - From: $client_ip, Interfaces: $ip_summary");
+        } elsif ($data->{ip}) {
+            # Old format with single IP
             write_log("Received heartbeat - From: $client_ip, Reported IP: $data->{ip}");
         } else {
             write_log("Received POST request - From: $client_ip, Data: $body");
